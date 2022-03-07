@@ -117,24 +117,25 @@ on p f g r =
 -- | in usage. When in doubt, label methods with specific types, such as
 -- | `show :: Int -> String`, or give the whole record an appropriate type.
 onMatch
-  ∷ ∀ rl r r1 r2 r3 b
-  . RL.RowToList r rl
-  ⇒ VariantMatchCases rl r1 b
-  ⇒ R.Union r1 r2 r3
-  ⇒ Record r
-  → (Variant r2 → b)
-  → Variant r3
+  ∷ ∀ rowListOfCallbacks recordOfCallbacks variantRowHandled variantRowWithoutHandled variantRowInput b
+  . RL.RowToList recordOfCallbacks rowListOfCallbacks
+  ⇒ VariantMatchCases rowListOfCallbacks variantRowHandled b
+  -- Why Union?
+  ⇒ R.Union variantRowHandled variantRowWithoutHandled variantRowInput
+  ⇒ Record recordOfCallbacks
+  → (Variant variantRowWithoutHandled → b) -- how to handle what's left
+  → Variant variantRowInput
   → b
-onMatch r k v =
+onMatch recordOfCallbacks k v =
   case coerceV v of
-    VariantRep v' | unsafeHas v'.type r → unsafeGet v'.type r v'.value
+    VariantRep v' | unsafeHas v'.type recordOfCallbacks → unsafeGet v'.type recordOfCallbacks v'.value
     _ → k (coerceR v)
 
   where
-  coerceV ∷ ∀ a. Variant r3 → VariantRep a
+  coerceV ∷ ∀ a. Variant variantRowInput → VariantRep a -- { type :: String, value :: a }
   coerceV = unsafeCoerce
 
-  coerceR ∷ Variant r3 → Variant r2
+  coerceR ∷ Variant variantRowInput → Variant variantRowWithoutHandled
   coerceR = unsafeCoerce
 
 -- | Map over one case of a variant, putting the result back at the same label,
@@ -286,12 +287,12 @@ case_ r = unsafeCrashWith case unsafeCoerce r of
 -- |   }
 -- | ```
 match
-  ∷ ∀ rl r r1 r2 b
+  ∷ ∀ rl r variantRowHandled variantRowInput b
   . RL.RowToList r rl
-  ⇒ VariantMatchCases rl r1 b
-  ⇒ R.Union r1 () r2
+  ⇒ VariantMatchCases rl variantRowHandled b
+  ⇒ R.Union variantRowHandled () variantRowInput
   ⇒ Record r
-  → Variant r2
+  → Variant variantRowInput
   → b
 match r = case_ # onMatch r
 

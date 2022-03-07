@@ -47,27 +47,29 @@ newtype VariantRep a = VariantRep
   }
 
 class VariantMatchCases :: RL.RowList Type -> Row Type -> Type -> Constraint
-class VariantMatchCases rl vo b | rl → vo b
+class VariantMatchCases rowListOfCallbacks variantOptions b | rowListOfCallbacks → variantOptions b
 
+-- it checks that `RL.RowList Type` values are actually functions `a -> b`
+-- AND that `a` is in `Variant (a :: xxx)`
 instance variantMatchCons
-  ∷ ( VariantMatchCases rl vo' b
-    , R.Cons sym a vo' vo
-    , TypeEquals k (a → b)
+  ∷ ( VariantMatchCases rowListOfCallbacks variantOptions' b
+    , R.Cons sym a variantOptions' variantOptions
+    , TypeEquals callbackFn (a → b)
     )
-  ⇒ VariantMatchCases (RL.Cons sym k rl) vo b
+  ⇒ VariantMatchCases (RL.Cons sym callbackFn rowListOfCallbacks) variantOptions b
 
 instance variantMatchNil
   ∷ VariantMatchCases RL.Nil () b
 
 class VariantFMatchCases :: RL.RowList Type -> Row (Type -> Type) -> Type -> Type -> Constraint
-class VariantFMatchCases rl vo a b | rl → vo a b
+class VariantFMatchCases rowListOfCallbacks variantOptions a b | rowListOfCallbacks → variantOptions a b
 
 instance variantFMatchCons
-  ∷ ( VariantFMatchCases rl vo' a b
-    , R.Cons sym f vo' vo
-    , TypeEquals k (f a → b)
+  ∷ ( VariantFMatchCases rl variantOptions' a b
+    , R.Cons sym f variantOptions' variantOptions
+    , TypeEquals callbackFn (f a → b)
     )
-  ⇒ VariantFMatchCases (RL.Cons sym k rl) vo a b
+  ⇒ VariantFMatchCases (RL.Cons sym callbackFn rl) variantOptions a b
 
 instance variantFMatchNil
   ∷ VariantFMatchCases RL.Nil () a b
@@ -80,9 +82,9 @@ instance variantMapCons
   ∷ ( R.Cons sym a ri' ri
     , R.Cons sym b ro' ro
     , VariantMapCases rl ri' ro'
-    , TypeEquals k (a → b)
+    , TypeEquals callbackFn (a → b)
     )
-  ⇒ VariantMapCases (RL.Cons sym k rl) ri ro
+  ⇒ VariantMapCases (RL.Cons sym callbackFn rl) ri ro
 
 instance variantMapNil
   ∷ VariantMapCases RL.Nil () ()
@@ -95,9 +97,9 @@ instance variantFMapCons
   ∷ ( R.Cons sym f ri' ri
     , R.Cons sym g ro' ro
     , VariantFMapCases rl ri' ro' a b
-    , TypeEquals k (f a → g b)
+    , TypeEquals callbackFn (f a → g b)
     )
-  ⇒ VariantFMapCases (RL.Cons sym k rl) ri ro a b
+  ⇒ VariantFMapCases (RL.Cons sym callbackFn rl) ri ro a b
 
 instance variantFMapNil
   ∷ VariantFMapCases RL.Nil () () a b
@@ -110,9 +112,9 @@ instance variantTravCons
   ∷ ( R.Cons sym a ri' ri
     , R.Cons sym b ro' ro
     , VariantTraverseCases m rl ri' ro'
-    , TypeEquals k (a → m b)
+    , TypeEquals callbackFn (a → m b)
     )
-  ⇒ VariantTraverseCases m (RL.Cons sym k rl) ri ro
+  ⇒ VariantTraverseCases m (RL.Cons sym callbackFn rl) ri ro
 
 instance variantTravNil
   ∷ VariantTraverseCases m RL.Nil () ()
@@ -125,9 +127,9 @@ instance variantFTravCons
   ∷ ( R.Cons sym f ri' ri
     , R.Cons sym g ro' ro
     , VariantFTraverseCases m rl ri' ro' a b
-    , TypeEquals k (f a → m (g b))
+    , TypeEquals callbackFn (f a → m (g b))
     )
-  ⇒ VariantFTraverseCases m (RL.Cons sym k rl) ri ro a b
+  ⇒ VariantFTraverseCases m (RL.Cons sym callbackFn rl) ri ro a b
 
 instance variantFTravNil
   ∷ VariantFTraverseCases m RL.Nil () () a b
